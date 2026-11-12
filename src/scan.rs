@@ -47,9 +47,17 @@ pub fn inspect<B: QueryBus>(bus: &mut B, short_address: u8) -> Result<Option<Val
     }
 
     let mut query_values = Map::new();
+    let mut groups_low = None;
+    let mut groups_high = None;
     for &(command, name) in QUERIES {
         let value = ask(bus, address, command)?;
-        query_values.insert(name.into(), json!(value));
+        match command {
+            0xc0 => groups_low = value,
+            0xc1 => groups_high = value,
+            _ => {
+                query_values.insert(name.into(), json!(value));
+            }
+        }
         if command == 0x99 && value == Some(0xff) {
             let mut types = Vec::new();
             for _ in 0..32 {
@@ -67,9 +75,9 @@ pub fn inspect<B: QueryBus>(bus: &mut B, short_address: u8) -> Result<Option<Val
             .and_then(Value::as_u64)
             .map(|n| n as u8)
     };
-    let groups_mask = value("groups_0_to_7")
+    let groups_mask = groups_low
         .map(u16::from)
-        .zip(value("groups_8_to_15"))
+        .zip(groups_high)
         .map(|(lo, hi)| lo | (u16::from(hi) << 8));
     let groups = groups_mask.map(|mask| {
         (0..16)
@@ -191,7 +199,7 @@ mod tests {
                 0x99 => Some(6),
                 0xa0 => Some(128),
                 0xa5 => Some(0x57),
-                0xc0 => Some(0b0000_0010),
+                0xc0 => Some(0b0000_0100),
                 0xc1 => Some(0),
                 _ => None,
             };
@@ -205,7 +213,9 @@ mod tests {
         replies.push_back((0x03, 0xc5, None));
         let result = inspect(&mut MockBus(replies), 1).unwrap().unwrap();
         assert_eq!(result["queries"]["actual_level"], 128);
-        assert_eq!(result["groups"], json!([1]));
+        assert_eq!(result["groups"], json!([2]));
+        assert!(result["queries"].get("groups_0_to_7").is_none());
+        assert!(result["queries"].get("groups_8_to_15").is_none());
         assert_eq!(result["scenes"][1]["level"], 42);
         assert_eq!(result["fade_time_code"], 5);
         assert_eq!(result["memory_bank_0"], Value::Null);
