@@ -8,6 +8,23 @@ Download the executable for your platform from [GitHub Releases](https://github.
 
 The [Build executables workflow](https://github.com/bentech/DaliInspector/actions/workflows/build.yml) runs on pushes to `master`, version tags beginning with `v`, pull requests, and manual dispatch. It compiles and runs the test suite on each platform; it does not need a USB adapter to build. Successful version tag builds publish the six executables as a GitHub Release. Other successful runs keep their downloadable workflow artifacts.
 
+### Install with a package manager
+
+Cargo can install directly from the private Git repository if you have access and the Rust toolchain:
+
+```sh
+cargo install --git ssh://git@github.com/bentech/DaliInspector.git --tag v1.0.0 --locked
+```
+
+On macOS, Homebrew can install from the formula in this repository. First add it as a private tap using your GitHub SSH access:
+
+```sh
+brew tap bentech/dali-inspector git@github.com:bentech/DaliInspector.git
+brew install bentech/dali-inspector/dali-inspector
+```
+
+The formula builds from the fixed v1.0.0 source tag. This repository and its tap remain private, so installers need GitHub access.
+
 ## Build locally
 
 ```sh
