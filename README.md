@@ -2,6 +2,14 @@
 
 Rust logger and control gear scanner for the older Lunatone DALI USB interface (USB VID `17B5`, PID `0020`). The DALI-2 USB serial/LUBA interface is a different device and is not supported here.
 
+## Download a build
+
+The [Build executables workflow](https://github.com/bentech/DaliInspector/actions/workflows/build.yml) uploads separate release executables for macOS Intel (`x86_64`), macOS Apple Silicon (`aarch64`), Windows x64 and ARM64, and Linux x64 and ARM64. Open a successful run and download the artifact named for your platform. On macOS and Linux, make the extracted `dali-inspector` file executable with `chmod +x dali-inspector`. Linux builds use the system `libudev` runtime library.
+
+The workflow runs on pushes to `master`, version tags beginning with `v`, pull requests, and manual dispatch. It compiles and runs the test suite on each platform; it does not need a USB adapter to build.
+
+## Build locally
+
 ```sh
 cargo build --release
 ./target/release/dali-inspector list
