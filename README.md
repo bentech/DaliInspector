@@ -2,15 +2,26 @@
 
 Rust logger and control gear scanner for the older Lunatone DALI USB interface (USB VID `17B5`, PID `0020`). The DALI-2 USB serial/LUBA interface is a different device and is not supported here.
 
-## Download a release
+## Install v1.0.0
 
-Download the executable for your platform from [GitHub Releases](https://github.com/bentech/DaliInspector/releases/latest). Release assets cover macOS Intel (`x86_64`), macOS Apple Silicon (`aarch64`), Windows x64 and ARM64, and Linux x64 and ARM64, with a `SHA256SUMS` file. On macOS and Linux, make the downloaded file executable with `chmod +x dali-inspector-*`. Linux builds use the system `libudev` runtime library.
+The private [v1.0.0 release](https://github.com/bentech/DaliInspector/releases/tag/v1.0.0) contains these executables and a `SHA256SUMS` file:
+
+| Platform | Release asset |
+| --- | --- |
+| macOS Apple Silicon | `dali-inspector-aarch64-apple-darwin` |
+| macOS Intel | `dali-inspector-x86_64-apple-darwin` |
+| Windows ARM64 | `dali-inspector-aarch64-pc-windows-msvc.exe` |
+| Windows x64 | `dali-inspector-x86_64-pc-windows-msvc.exe` |
+| Linux ARM64 | `dali-inspector-aarch64-unknown-linux-gnu` |
+| Linux x64 | `dali-inspector-x86_64-unknown-linux-gnu` |
+
+All six [release build jobs](https://github.com/bentech/DaliInspector/actions/runs/43208580874) passed their tests, and the downloaded release assets matched `SHA256SUMS`. On macOS and Linux, make the downloaded file executable with `chmod +x <downloaded-file>`. Linux builds use the system `libudev` runtime library. Access to the private repository is required to download these files.
 
 The [Build executables workflow](https://github.com/bentech/DaliInspector/actions/workflows/build.yml) runs on pushes to `master`, version tags beginning with `v`, pull requests, and manual dispatch. It compiles and runs the test suite on each platform; it does not need a USB adapter to build. Successful version tag builds publish the six executables as a GitHub Release. Other successful runs keep their downloadable workflow artifacts.
 
 ### Install with a package manager
 
-Cargo can install directly from the private Git repository if you have access and the Rust toolchain:
+Cargo can install directly from the private Git tag if you have access and the Rust toolchain. The crate is not published to crates.io, so use `--git`:
 
 ```sh
 cargo install --git ssh://git@github.com/bentech/DaliInspector.git --tag v1.0.0 --locked
@@ -23,7 +34,7 @@ brew tap bentech/dali-inspector git@github.com:bentech/DaliInspector.git
 brew install bentech/dali-inspector/dali-inspector
 ```
 
-The formula builds from the fixed v1.0.0 source tag. This repository and its tap remain private, so installers need GitHub access.
+The formula builds from the fixed v1.0.0 source tag. Its Homebrew style and strict audit checks passed, and `brew fetch` retrieved the tagged source. A full Homebrew install has not yet been tested. This repository and its tap remain private, so installers need GitHub access.
 
 ## Build locally
 
