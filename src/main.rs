@@ -13,7 +13,7 @@ use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
 fn usage() -> &'static str {
-    "Usage:\n  dali-inspector list\n  dali-inspector log [--device-index N] [--raw]\n  dali-inspector scan [--device-index N]\n  dali-inspector inspect SHORT_ADDRESS [--device-index N]\n  dali-inspector send SHORT level 0..254|mask | scene 1..16 | ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F\n  dali-inspector set SHORT fade-time CODE | extended-fade-time CODE | fade-rate CODE | min-level LEVEL | max-level LEVEL | power-on-level LEVEL|mask | system-failure-level LEVEL|mask | led-curve linear|exponential\n  dali-inspector write-scene SHORT SCENE LEVEL|mask [ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F]\n  dali-inspector decode [--raw] < reports.hex\n\nFor send, set and write-scene: append --dry-run to print frames without USB, --device-index N, or --rgb-mode normalised|extended|legacy. Scenes shown are 1..16. Ctrl-C stops logging."
+    "Usage:\n  dali-inspector list\n  dali-inspector log [--device-index N] [--raw]\n  dali-inspector follow [--device-index N] [--raw]\n  dali-inspector --follow [--device-index N] [--raw]\n  dali-inspector scan [--device-index N]\n  dali-inspector inspect SHORT_ADDRESS [--device-index N]\n  dali-inspector send SHORT level 0..254|mask | scene 1..16 | ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F\n  dali-inspector set SHORT fade-time CODE | extended-fade-time CODE | fade-rate CODE | min-level LEVEL | max-level LEVEL | power-on-level LEVEL|mask | system-failure-level LEVEL|mask | led-curve linear|exponential\n  dali-inspector write-scene SHORT SCENE LEVEL|mask [ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F]\n  dali-inspector decode [--raw] < reports.hex\n\nfollow passively displays traffic from another controller on the same DALI bus. For send, set and write-scene: append --dry-run to print frames without USB, --device-index N, or --rgb-mode normalised|extended|legacy. Scenes shown are 1..16. Ctrl-C stops logging."
 }
 
 struct HidBus {
@@ -320,7 +320,7 @@ fn run() -> Result<(), Box<dyn Error>> {
                 }))?
             );
         }
-        "log" => {
+        "log" | "follow" | "--follow" => {
             let api = HidApi::new()?;
             let bus = open_hid_bus(&api, device_index)?;
             eprintln!("Listening to DALI USB HID (VID {VENDOR_ID:04X}, PID {PRODUCT_ID:04X}); Ctrl-C to stop");

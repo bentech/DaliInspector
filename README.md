@@ -6,6 +6,7 @@ Rust logger and control gear scanner for the older Lunatone DALI USB interface (
 cargo build --release
 ./target/release/dali-inspector list
 ./target/release/dali-inspector log --raw
+./target/release/dali-inspector follow --raw
 ./target/release/dali-inspector scan > gear.json
 ./target/release/dali-inspector inspect 12 > gear-12.json
 ./target/release/dali-inspector send 12 level 128
@@ -16,7 +17,7 @@ cargo build --release
 ./target/release/dali-inspector send 12 rgbwaf 254 0 0 0 0 0
 ```
 
-Use `--device-index N` if `list` shows more than one matching HID interface. Pipe `log` output to `tee` to save a log. The log includes common DALI command names and decodes answers where it can associate an answer with the preceding query.
+Use `follow` (or `--follow`) to watch DALI frames sent by another controller on the same powered DALI bus. This uses the passive `log` mode; add `--raw` to include frame bytes. Use `--device-index N` if `list` shows more than one matching HID interface. Pipe the output to `tee dali-traffic.log` to save it. The log includes common DALI command names and decodes answers where it can associate an answer with the preceding query.
 
 `scan` queries short addresses 0–63 and prints one JSON object containing every responding control gear. `inspect N` queries one short address. The JSON includes general IEC 62386 control gear query values, status flags, device type(s), levels, fade codes, groups, all 16 scenes, random address, and memory bank 0 identity fields (when readable). The two DALI group bytes are combined into one `groups` array of group numbers 0–15 (for example, masks `4` and `0` produce `[2]`). A missing query answer appears as `null`. `scenes[].level: null` also means the scene is unprogrammed (raw value `0xFF`). JSON is written to stdout; discovery messages go to stderr. A scan keeps going after an address times out, records it in `errors`, sets `complete: false`, and exits with an error status.
 
