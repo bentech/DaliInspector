@@ -2,6 +2,7 @@
 
 pub const VENDOR_ID: u16 = 0x17b5;
 pub const PRODUCT_ID: u16 = 0x0020;
+pub mod control;
 pub mod scan;
 
 /// Build one 64-byte USB interrupt output payload. HID APIs prepend a zero
@@ -42,6 +43,7 @@ pub fn command_name(address: u8, command: u8) -> String {
             0x2d => "SET POWER ON LEVEL".into(),
             0x2e => "SET FADE TIME".into(),
             0x2f => "SET FADE RATE".into(),
+            0x30 => "SET EXTENDED FADE TIME".into(),
             0x40..=0x4f => format!("SET SCENE {}", command - 0x40),
             0x50..=0x5f => format!("REMOVE FROM SCENE {}", command - 0x50),
             0x60..=0x6f => format!("ADD TO GROUP {}", command - 0x60),
@@ -81,6 +83,7 @@ pub fn command_name(address: u8, command: u8) -> String {
             0xc3 => "QUERY RANDOM ADDRESS MID".into(),
             0xc4 => "QUERY RANDOM ADDRESS LOW".into(),
             0xc5 => "READ MEMORY LOCATION".into(),
+            0xe0..=0xfe => format!("DEVICE TYPE COMMAND 0x{command:02X}"),
             0xff => "QUERY EXTENDED VERSION".into(),
             _ => format!("COMMAND 0x{command:02X}"),
         };

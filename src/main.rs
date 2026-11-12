@@ -1,4 +1,5 @@
 use chrono::Local;
+use dali_inspector::control::{self, Frame};
 use dali_inspector::scan::QueryBus;
 use dali_inspector::{
     command_name, decode, describe, describe_answer, hex, is_query, parse_hex_line, query_payload,
@@ -12,12 +13,51 @@ use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
 fn usage() -> &'static str {
-    "Usage:\n  dali-inspector list\n  dali-inspector log [--device-index N] [--raw]\n  dali-inspector scan [--device-index N]\n  dali-inspector inspect SHORT_ADDRESS [--device-index N]\n  dali-inspector decode [--raw] < reports.hex\n\nlog only reads DALI traffic. scan and inspect send DALI query frames. Ctrl-C stops logging."
+    "Usage:\n  dali-inspector list\n  dali-inspector log [--device-index N] [--raw]\n  dali-inspector scan [--device-index N]\n  dali-inspector inspect SHORT_ADDRESS [--device-index N]\n  dali-inspector send SHORT level 0..254|mask | scene 1..16 | ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F\n  dali-inspector set SHORT fade-time CODE | extended-fade-time CODE | fade-rate CODE | min-level LEVEL | max-level LEVEL | power-on-level LEVEL|mask | system-failure-level LEVEL|mask | led-curve linear|exponential\n  dali-inspector write-scene SHORT SCENE LEVEL|mask [ct KELVIN | xy X Y | rgb R G B | rgbwaf R G B W A F]\n  dali-inspector decode [--raw] < reports.hex\n\nFor send, set and write-scene: append --dry-run to print frames without USB, --device-index N, or --rgb-mode normalised|extended|legacy. Scenes shown are 1..16. Ctrl-C stops logging."
 }
 
 struct HidBus {
     handle: HidDevice,
     next_sequence: u8,
+}
+
+impl HidBus {
+    fn send_frame(&mut self, frame: &Frame) -> Result<(), String> {
+        let sequence = self.next_sequence;
+        self.next_sequence = if sequence == 255 { 1 } else { sequence + 1 };
+        let mut report = [0u8; 65];
+        report[1..].copy_from_slice(&query_payload(sequence, frame.address, frame.data));
+        let written = self.handle.write(&report).map_err(|e| e.to_string())?;
+        if written != report.len() {
+            return Err(format!(
+                "short HID write: {written} of {} bytes",
+                report.len()
+            ));
+        }
+        let deadline = Instant::now() + Duration::from_millis(1500);
+        let mut incoming = [0u8; 65];
+        loop {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return Err(format!("timeout waiting for USB sequence {sequence}"));
+            }
+            let count = self
+                .handle
+                .read_timeout(&mut incoming, left.as_millis().min(200).max(1) as i32)
+                .map_err(|e| e.to_string())?;
+            if count == 0 {
+                continue;
+            }
+            match decode(&incoming[..count]) {
+                Ok(Report::HostComplete { sequence: got, .. }) if got == sequence => return Ok(()),
+                Ok(Report::NoAnswer { sequence: got, .. }) if got == sequence => return Ok(()),
+                Ok(Report::Answer { sequence: got, .. }) if got == sequence => {
+                    return Err("unexpected DALI answer to a send frame".into())
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl scan::QueryBus for HidBus {
@@ -164,6 +204,13 @@ fn list(api: &HidApi) {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
+    let all_args: Vec<String> = env::args().skip(1).collect();
+    if matches!(
+        all_args.first().map(String::as_str),
+        Some("send" | "set" | "write-scene")
+    ) {
+        return run_control(&all_args);
+    }
     let mut args = env::args().skip(1);
     let command = args.next().unwrap_or_else(|| "help".into());
     let mut raw = false;
@@ -288,6 +335,60 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         _ => return Err(format!("unknown command {command}\n{}", usage()).into()),
     }
+    Ok(())
+}
+
+fn run_control(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let mut positional = Vec::new();
+    let mut dry_run = false;
+    let mut device_index = 0usize;
+    let mut rgb_mode = "normalised";
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--dry-run" => dry_run = true,
+            "--device-index" => {
+                i += 1;
+                device_index = args
+                    .get(i)
+                    .ok_or("--device-index needs a number")?
+                    .parse()?;
+            }
+            "--rgb-mode" => {
+                i += 1;
+                rgb_mode = args.get(i).ok_or("--rgb-mode needs a value")?;
+            }
+            _ => positional.push(args[i].clone()),
+        }
+        i += 1;
+    }
+    if !matches!(rgb_mode, "normalised" | "extended" | "legacy") {
+        return Err("--rgb-mode must be normalised, extended or legacy".into());
+    }
+    let frames = control::plan_with_rgb_mode(&positional, rgb_mode)?;
+    if dry_run {
+        for (index, frame) in frames.iter().enumerate() {
+            println!(
+                "{:02} {:02X} {:02X} {}",
+                index + 1,
+                frame.address,
+                frame.data,
+                frame.label
+            );
+        }
+        return Ok(());
+    }
+    let api = HidApi::new()?;
+    let mut bus = open_hid_bus(&api, device_index)?;
+    for (index, frame) in frames.iter().enumerate() {
+        bus.send_frame(frame)
+            .map_err(|error| format!("frame {} ({}): {error}", index + 1, frame.label))?;
+    }
+    println!(
+        "Sent {} DALI frames to short address {}",
+        frames.len(),
+        positional[1]
+    );
     Ok(())
 }
 
