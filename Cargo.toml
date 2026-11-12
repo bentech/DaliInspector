@@ -1,0 +1,9 @@
+[package]
+name = "dali-inspector"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+hidapi = { version = "2.6.7", features = ["macos-shared-device"] }
+serde_json = "1"
