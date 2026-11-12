@@ -2,11 +2,11 @@
 
 Rust logger and control gear scanner for the older Lunatone DALI USB interface (USB VID `17B5`, PID `0020`). The DALI-2 USB serial/LUBA interface is a different device and is not supported here.
 
-## Download a build
+## Download a release
 
-The [Build executables workflow](https://github.com/bentech/DaliInspector/actions/workflows/build.yml) uploads separate release executables for macOS Intel (`x86_64`), macOS Apple Silicon (`aarch64`), Windows x64 and ARM64, and Linux x64 and ARM64. Open a successful run and download the artifact named for your platform. On macOS and Linux, make the extracted `dali-inspector` file executable with `chmod +x dali-inspector`. Linux builds use the system `libudev` runtime library.
+Download the executable for your platform from [GitHub Releases](https://github.com/bentech/DaliInspector/releases/latest). Release assets cover macOS Intel (`x86_64`), macOS Apple Silicon (`aarch64`), Windows x64 and ARM64, and Linux x64 and ARM64, with a `SHA256SUMS` file. On macOS and Linux, make the downloaded file executable with `chmod +x dali-inspector-*`. Linux builds use the system `libudev` runtime library.
 
-The workflow runs on pushes to `master`, version tags beginning with `v`, pull requests, and manual dispatch. It compiles and runs the test suite on each platform; it does not need a USB adapter to build.
+The [Build executables workflow](https://github.com/bentech/DaliInspector/actions/workflows/build.yml) runs on pushes to `master`, version tags beginning with `v`, pull requests, and manual dispatch. It compiles and runs the test suite on each platform; it does not need a USB adapter to build. Successful version tag builds publish the six executables as a GitHub Release. Other successful runs keep their downloadable workflow artifacts.
 
 ## Build locally
 

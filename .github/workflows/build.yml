@@ -61,3 +61,46 @@ jobs:
           name: dali-inspector-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/${{ matrix.binary }}
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform executables
+        uses: actions/download-artifact@v7
+        with:
+          pattern: dali-inspector-*
+          path: artifacts
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          directories=(artifacts/dali-inspector-*)
+          test "${#directories[@]}" -eq 6
+          mkdir -p release-assets
+          for directory in "${directories[@]}"; do
+            target="${directory#artifacts/dali-inspector-}"
+            if [[ -f "$directory/dali-inspector.exe" ]]; then
+              cp "$directory/dali-inspector.exe" "release-assets/dali-inspector-$target.exe"
+            else
+              cp "$directory/dali-inspector" "release-assets/dali-inspector-$target"
+            fi
+          done
+          (cd release-assets && sha256sum dali-inspector-* > SHA256SUMS)
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --verify-tag \
+            --title "DaliInspector $GITHUB_REF_NAME" \
+            --notes "Prebuilt executables for macOS, Windows and Linux on x64 and ARM64. Hardware-specific send operations still need validation with addressed control gear." \
+            --generate-notes
